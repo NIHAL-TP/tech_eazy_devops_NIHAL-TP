@@ -91,6 +91,47 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 # EC2 Instance with proper user data
+resource "aws_s3_bucket" "config_bucket" {
+  bucket = "${var.project_name}-${var.environment}-config"
+  force_destroy = true
+}
+
+resource "aws_iam_policy" "s3_read_config" {
+  name        = "${var.project_name}-${var.environment}-s3-read-config"
+  description = "Allow EC2 to read config files from S3 bucket."
+  policy      = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:GetObject"
+        ],
+        Resource = [
+          "${aws_s3_bucket.config_bucket.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_s3_config" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = aws_iam_policy.s3_read_config.arn
+}
+
+resource "null_resource" "upload_configs" {
+  depends_on = [aws_s3_bucket.config_bucket]
+
+  provisioner "local-exec" {
+    command = "aws s3 cp ../config/dev.json s3://${aws_s3_bucket.config_bucket.bucket}/dev.json"
+  }
+
+  provisioner "local-exec" {
+    command = "aws s3 cp ../config/prod.json s3://${aws_s3_bucket.config_bucket.bucket}/prod.json"
+  }
+}
+
 resource "aws_instance" "app_server" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
@@ -98,7 +139,16 @@ resource "aws_instance" "app_server" {
   iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
   subnet_id            = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  user_data = file("${path.module}/../scripts/user_data.sh")
+
+  user_data = templatefile("${path.module}/../scripts/user_data.sh.tpl", {
+    stage          = var.environment
+    repo_url       = var.repo_url
+    shutdown_hours = var.shutdown_hours
+    java_package   = var.java_package
+    maven_package  = var.maven_package
+    config_bucket  = aws_s3_bucket.config_bucket.bucket
+  })
+
   tags = {
     Name        = "${var.project_name}-${var.environment}-server"
     Environment = var.environment
@@ -111,8 +161,10 @@ resource "aws_instance" "app_server" {
 
   lifecycle {
     create_before_destroy = true
-    
   }
+
+  # Removed file and remote-exec provisioners
+  # Removed connection block
 }
 
 # Data source for latest Ubuntu 22.04 LTS AMI

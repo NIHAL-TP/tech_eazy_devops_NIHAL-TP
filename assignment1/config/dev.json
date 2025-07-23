@@ -1,0 +1,10 @@
+{
+    "instance_type": "t2.micro",
+    "region": "us-east-1",
+    "environment": "dev",
+    "app_port": 80,
+    "shutdown_after_hours": 4,
+    "repo_url": "https://github.com/techeazy-consulting/techeazy-devops.git",
+    "health_check_path": "/health",
+    "java_version": "21"
+}

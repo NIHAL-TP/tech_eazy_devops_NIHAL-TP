@@ -1,0 +1,10 @@
+{
+    "instance_type": "t2.medium",
+    "region": "us-east-1",
+    "environment": "prod",
+    "app_port": 80,
+    "shutdown_after_hours": 2,
+    "repo_url": "https://github.com/techeazy-consulting/techeazy-devops.git",
+    "health_check_path": "/health",
+    "java_version": "21"
+} 

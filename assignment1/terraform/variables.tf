@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "environment" {
   description = "Environment name (dev/prod)"
   type        = string
-  default     = "dev"
+  default     = "prod"
 }
 
 variable "instance_type" {
@@ -32,4 +32,28 @@ variable "key_name" {
   description = "Name of the EC2 key pair"
   type        = string
   default     = "techeazy-key"
+}
+
+variable "repo_url" {
+  description = "GitHub repository URL to clone."
+  type        = string
+  default     = "https://github.com/techeazy-consulting/techeazy-devops.git"
+}
+
+variable "shutdown_hours" {
+  description = "Number of hours after which the instance will shut down."
+  type        = number
+  default     = 4
+}
+
+variable "java_package" {
+  description = "Java package to install."
+  type        = string
+  default     = "openjdk-21-jdk"
+}
+
+variable "maven_package" {
+  description = "Maven package to install."
+  type        = string
+  default     = "maven"
 }
