@@ -30,10 +30,17 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Sync config files to S3
+    - name: Sync config file to S3 based on branch
       run: |
-        aws s3 cp assignment1/config/dev.json s3://techeazy-devops-dev-config/dev.json
-        aws s3 cp assignment1/config/prod.json s3://techeazy-devops-prod-config/prod.json
+        if [ "${{ github.ref }}" == "refs/heads/dev" ]; then
+          aws s3 cp assignment1/config/dev.json s3://techeazy-devops-config/dev.json
+        elif [ "${{ github.ref }}" == "refs/heads/prod" ]; then
+          aws s3 cp assignment1/config/prod.json s3://techeazy-devops-config/prod.json
+        elif [ "${{ github.ref }}" == "refs/heads/fix" ]; then
+          aws s3 cp assignment1/config/dev.json s3://techeazy-devops-config/dev.json
+        else
+          echo "Branch not recognized for config upload"
+        fi
 
     - name: Deploy to EC2 via SSH
       uses: appleboy/ssh-action@v0.1.6
