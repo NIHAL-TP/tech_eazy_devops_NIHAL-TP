@@ -1,7 +1,10 @@
 # Terraform state and backup files
 *.tfstate
 *.tfstate.*
-*.tfvars
+# Ignore all tfvars files except prod.tfvars and dev.tfvars
+#*.tfvars
+!assignment1/terraform/prod.tfvars
+!assignment1/terraform/dev.tfvars
 .terraform/
 crash.log
 *.tfplan
@@ -11,4 +14,4 @@ crash.log
 .terraform.lock.hcl
 
 # Terraform variable files
-*.tfvars
+#*.tfvars
