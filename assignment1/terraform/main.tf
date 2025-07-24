@@ -92,7 +92,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 
 # EC2 Instance with proper user data
 resource "aws_s3_bucket" "config_bucket" {
-  bucket = "${var.project_name}-config"
+  bucket = "techeazy-devops-production-config"
   force_destroy = true
 }
 
