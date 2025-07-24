@@ -49,9 +49,17 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          cd /home/ubuntu/techeazy-devops
-          git pull origin main
-          ./assignment1/scripts/user_data.sh.tpl
+          if [ -d /home/ubuntu/techeazy-devops ]; then
+            cd /home/ubuntu/techeazy-devops
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
+          else
+            git clone --branch ${{ github.ref_name }} https://github.com/techeazy-consulting/techeazy-devops.git /home/ubuntu/techeazy-devops
+            cd /home/ubuntu/techeazy-devops
+          fi
+          mvn clean package
+          sudo pkill -f 'java -jar' || true
+          sudo nohup java -jar target/techeazy-devops-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
 
     - name: Run health check script on EC2
       uses: appleboy/ssh-action@v0.1.6
