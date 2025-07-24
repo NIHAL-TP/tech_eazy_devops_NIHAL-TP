@@ -32,7 +32,7 @@ jobs:
 
     - name: Sync config file to S3 based on branch
       run: |
-        BUCKET_NAME="techeazy-devops-production-config"
+        BUCKET_NAME="techeazy-devops-config"
         if [ "${{ github.ref }}" == "refs/heads/dev" ]; then
           aws s3 cp assignment1/config/dev.json s3://$BUCKET_NAME/dev.json
         elif [ "${{ github.ref }}" == "refs/heads/prod" ]; then
