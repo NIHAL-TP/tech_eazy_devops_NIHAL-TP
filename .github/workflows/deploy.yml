@@ -54,9 +54,9 @@ jobs:
           REPO_URL="https://github.com/Trainings-TechEazy/test-repo-for-devops.git"
           BRANCH="main"
           APP_JAR_NAME="hellomvc-0.0.1-SNAPSHOT.jar"
+
           # Kill existing app if running
           echo "Checking for existing app processes..."
-          # Use the full JAR name for pkill to be precise
           if pgrep -f "java.*$APP_JAR_NAME"; then
             echo "Found old app processes. Killing..."
             sudo pkill -f "java.*$APP_JAR_NAME"
@@ -65,7 +65,7 @@ jobs:
           else
             echo "No existing app running."
           fi
-          
+
           if [ -d /home/ubuntu/techeazy-devops ]; then
             cd /home/ubuntu/techeazy-devops
             git remote set-url origin $REPO_URL
@@ -75,22 +75,19 @@ jobs:
             git clone --branch $BRANCH $REPO_URL /home/ubuntu/techeazy-devops
             cd /home/ubuntu/techeazy-devops
           fi
-          
+
           mvn clean package
-          
-          
-          
+
           # Start the app fully detached from the SSH session
-          sudo setsid nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 < /dev/null &
+          sudo setsid nohup java -jar target/$APP_JAR_NAME --server.port=80 > app.log 2>&1 < /dev/null &
           sleep 25  # Increased sleep time for app startup
-          
+
           # Check the root endpoint
           if ! curl -f http://localhost:80/hello; then
             echo "App failed to start or is not reachable"
             sudo tail -n 100 app.log
             exit 1
-          fi
-
+fi
 
     # Optional: Additional health check step if needed
     - name: Run extended health check
