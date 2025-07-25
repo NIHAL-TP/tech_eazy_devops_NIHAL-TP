@@ -73,7 +73,7 @@ jobs:
           fi
           
           # Start the app fully detached from the SSH session
-          sudo setsid nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 < /dev/null 
+          sudo setsid nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 < /dev/null &
           sleep 25  # Increased sleep time for app startup
           
           # Check the root endpoint
