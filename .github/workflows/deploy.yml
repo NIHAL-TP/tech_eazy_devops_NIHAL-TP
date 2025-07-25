@@ -54,6 +54,10 @@ jobs:
           REPO_URL="https://github.com/Trainings-TechEazy/test-repo-for-devops.git"
           BRANCH="main"
           
+          # Kill existing app if running
+          sudo pkill -f 'hellomvc-.*\.jar' || echo "No existing app running"
+          sleep 5  # Wait for process termination
+          
           if [ -d /home/ubuntu/techeazy-devops ]; then
             cd /home/ubuntu/techeazy-devops
             git remote set-url origin $REPO_URL
@@ -66,21 +70,17 @@ jobs:
           
           mvn clean package
           
+          # Start the app
+          sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
+          sleep 25  # Wait for app startup
           
-          
-          # Start the app fully detached from the SSH session
-          sudo setsid nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 < /dev/null &
-          sleep 25  # Increased sleep time for app startup
-          
-          # Check the root endpoint
+          # Health check
           if ! curl -f http://localhost:80/hello; then
-            echo "App failed to start or is not reachable"
+            echo "App failed to start"
             sudo tail -n 100 app.log
             exit 1
           fi
 
-
-    # Optional: Additional health check step if needed
     - name: Run extended health check
       uses: appleboy/ssh-action@v0.1.6
       with:
