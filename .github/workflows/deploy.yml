@@ -55,25 +55,26 @@ jobs:
           BRANCH="main"
           
           if [ -d /home/ubuntu/techeazy-devops ]; then
-            cd /home/ubuntu/techeazy-devops
+            cd /home/ubuntu/techeazy-devops/target
             git remote set-url origin $REPO_URL
             git fetch origin
             git reset --hard origin/$BRANCH
           else
             git clone --branch $BRANCH $REPO_URL /home/ubuntu/techeazy-devops
-            cd /home/ubuntu/techeazy-devops
+            cd /home/ubuntu/techeazy-devops/target
           fi
           
           mvn clean package
           
           # Stop only the specific application
-          APP_JAR="target/hellomvc-0.0.1-SNAPSHOT.jar"
+          APP_JAR="hellomvc-0.0.1-SNAPSHOT.jar"
           if pgrep -f "$APP_JAR"; then
             sudo pkill -f "$APP_JAR"
             sleep 5  # Wait for process to terminate
           fi
           
           sudo nohup java -jar $APP_JAR --server.port=80 > app.log 2>&1 &
+          cd ..
           sleep 25  # Increased sleep time for app startup
           
           # Check the root endpoint
