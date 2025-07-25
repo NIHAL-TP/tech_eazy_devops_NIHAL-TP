@@ -5,8 +5,6 @@ on:
     branches:
       - main
       - dev
-      - prod
-      - fix
   workflow_dispatch:
 
 jobs:
@@ -33,14 +31,15 @@ jobs:
     - name: Sync config file to S3 based on branch
       run: |
         BUCKET_NAME="techeazy-devops-config"
-        if [ "${{ github.ref }}" == "refs/heads/dev" ]; then
-          aws s3 cp assignment1/config/dev.json s3://$BUCKET_NAME/dev.json
-        elif [ "${{ github.ref }}" == "refs/heads/prod" ]; then
+        # Use main branch config for production
+        if [ "${{ github.ref }}" == "refs/heads/main" ]; then
           aws s3 cp assignment1/config/prod.json s3://$BUCKET_NAME/prod.json
-        elif [ "${{ github.ref }}" == "refs/heads/fix" ]; then
-          aws s3 cp assignment1/config/fix.json s3://$BUCKET_NAME/fix.json
+        # Use dev branch config for development
+        elif [ "${{ github.ref }}" == "refs/heads/dev" ]; then
+          aws s3 cp assignment1/config/dev.json s3://$BUCKET_NAME/dev.json
         else
           echo "Branch not recognized for config upload"
+          exit 1
         fi
 
     - name: Deploy to EC2 via SSH
