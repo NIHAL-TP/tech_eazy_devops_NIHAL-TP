@@ -92,7 +92,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 
 # EC2 Instance with proper user data
 resource "aws_s3_bucket" "config_bucket" {
-  bucket = "${var.project_name}-${var.environment}-config"
+  bucket = "techeazy-devops-config"
   force_destroy = true
 }
 
@@ -124,11 +124,7 @@ resource "null_resource" "upload_configs" {
   depends_on = [aws_s3_bucket.config_bucket]
 
   provisioner "local-exec" {
-    command = "aws s3 cp ../config/dev.json s3://${aws_s3_bucket.config_bucket.bucket}/dev.json"
-  }
-
-  provisioner "local-exec" {
-    command = "aws s3 cp ../config/prod.json s3://${aws_s3_bucket.config_bucket.bucket}/prod.json"
+    command = "aws s3 cp ../config/${var.environment}.json s3://${aws_s3_bucket.config_bucket.bucket}/${var.environment}.json"
   }
 }
 
@@ -147,6 +143,7 @@ resource "aws_instance" "app_server" {
     java_package   = var.java_package
     maven_package  = var.maven_package
     config_bucket  = aws_s3_bucket.config_bucket.bucket
+    ssh_private_key = file("~/.ssh/techeazy-key")
   })
 
   tags = {

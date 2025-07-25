@@ -4,6 +4,9 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+# Removed ssh_private_key variable declaration to avoid prompt during terraform apply
+# The private key content is read directly from file in main.tf
+
 variable "environment" {
   description = "Environment name (dev/prod)"
   type        = string
@@ -37,7 +40,7 @@ variable "key_name" {
 variable "repo_url" {
   description = "GitHub repository URL to clone."
   type        = string
-  default     = "https://github.com/techeazy-consulting/techeazy-devops.git"
+  default     = "https://github.com/Trainings-TechEazy/test-repo-for-devops.git"
 }
 
 variable "shutdown_hours" {
