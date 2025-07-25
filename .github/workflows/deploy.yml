@@ -51,7 +51,7 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           set -e
-          REPO_URL="https://github.com/${{ github.repository }}.git"
+          REPO_URL="https://github.com/Trainings-TechEazy/test-repo-for-devops.git"
           BRANCH="${{ github.ref_name }}"
           
           if [ -d /home/ubuntu/techeazy-devops ]; then
