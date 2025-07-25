@@ -69,7 +69,7 @@ jobs:
           # Stop only the specific application
           APP_JAR="target/hellomvc-0.0.1-SNAPSHOT.jar"
           if pgrep -f "$APP_JAR"; then
-            sudo pkill -f "$APP_JAR"
+            sudo pkill -f "java.*hellomvc-0.0.1-SNAPSHOT.jar"
             sleep 5  # Wait for process to terminate
           fi
           
