@@ -43,12 +43,12 @@ cd "$APP_DIR"
 
 mvn clean package
 
-sudo nohup java -jar target/techeazy-devops-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
+sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
 
 # Wait for the app to start with retries
 max_retries=10
 retry_count=0
-until curl -f http://localhost:80/; do
+until curl -f http://localhost:80/hello; do
     retry_count=$((retry_count+1))
     if [ $retry_count -ge $max_retries ]; then
         echo "App did not start correctly after $max_retries attempts."
@@ -58,4 +58,4 @@ until curl -f http://localhost:80/; do
     sleep 5
 done
 
-sudo shutdown -h +$(( ${shutdown_hours} * 60 )) 
+sudo shutdown -h +$(( ${shutdown_hours} * 60 ))
