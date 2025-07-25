@@ -38,12 +38,15 @@ fi
 echo "DEBUG: REPO_SSH_URL is $REPO_SSH_URL"
 echo "DEBUG: APP_DIR is $APP_DIR"
 if [ -d "$APP_DIR" ]; then
-    echo "DEBUG: APP_DIR already exists, skipping clone"
+    echo "DEBUG: APP_DIR already exists, fetching latest changes"
+    cd "$APP_DIR"
+    git fetch origin
+    git reset --hard origin/main
 else
     echo "DEBUG: APP_DIR does not exist, cloning repo"
     git clone "$REPO_SSH_URL" "$APP_DIR"
+    cd "$APP_DIR"
 fi
-cd "$APP_DIR"
 
 mvn clean package
 
