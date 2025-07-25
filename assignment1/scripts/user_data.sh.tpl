@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-REPO_URL="${repo_url}"
+# Use SSH for Git cloning to avoid HTTPS auth issues
+REPO_SSH_URL="git@github.com:Trainings-TechEazy/test-repo-for-devops.git"
 APP_DIR="/home/ubuntu/techeazy-devops"
 CONFIG_DIR="/home/ubuntu/config"
 CONFIG_FILE="$CONFIG_DIR/config.json"
@@ -13,31 +14,34 @@ CONFIG_BUCKET="${config_bucket}"
 
 sudo mkdir -p $CONFIG_DIR
 
-# Install dependencies (including awscli) first!
+# Install dependencies (including awscli and ssh client) first!
 sudo apt-get update
-sudo apt-get install -y $JAVA_PACKAGE $MAVEN_PACKAGE git jq curl awscli
+sudo apt-get install -y $JAVA_PACKAGE $MAVEN_PACKAGE git jq curl awscli openssh-client
+
+# Setup SSH key for GitHub access
+mkdir -p /home/ubuntu/.ssh
+echo "${ssh_private_key}" > /home/ubuntu/.ssh/id_rsa
+chmod 600 /home/ubuntu/.ssh/id_rsa
+ssh-keyscan github.com >> /home/ubuntu/.ssh/known_hosts
+chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 
 # Now download the correct config file from S3
 aws s3 cp s3://$CONFIG_BUCKET/$STAGE.json $CONFIG_FILE
 
 if [ -f "$CONFIG_FILE" ]; then
-    REPO_URL=$(jq -r '.repo_url // empty' "$CONFIG_FILE")
-    if [ -z "$REPO_URL" ]; then
-        REPO_URL="${repo_url}"
-    fi
     SHUTDOWN_HOURS=$(jq -r '.shutdown_after_hours // empty' "$CONFIG_FILE")
     if [ -z "$SHUTDOWN_HOURS" ]; then
         SHUTDOWN_HOURS="${shutdown_hours}"
     fi
 fi
 
-echo "DEBUG: REPO_URL is $REPO_URL"
+echo "DEBUG: REPO_SSH_URL is $REPO_SSH_URL"
 echo "DEBUG: APP_DIR is $APP_DIR"
 if [ -d "$APP_DIR" ]; then
     echo "DEBUG: APP_DIR already exists, skipping clone"
 else
     echo "DEBUG: APP_DIR does not exist, cloning repo"
-    git clone "$REPO_URL" "$APP_DIR"
+    git clone "$REPO_SSH_URL" "$APP_DIR"
 fi
 cd "$APP_DIR"
 
@@ -58,4 +62,4 @@ until curl -f http://localhost:80/hello; do
     sleep 5
 done
 
-sudo shutdown -h +$(( ${shutdown_hours} * 60 ))
+sudo shutdown -h +$(( ${shutdown_hours} * 60 )) 
