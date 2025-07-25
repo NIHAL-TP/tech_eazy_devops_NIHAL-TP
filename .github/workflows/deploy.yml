@@ -66,14 +66,18 @@ jobs:
           
           mvn clean package
           
-          
+          # Stop any running instance of the application
+          if pgrep -f "java.*hellomvc-0.0.1-SNAPSHOT.jar"; then
+            sudo pkill -f "java.*hellomvc-0.0.1-SNAPSHOT.jar"
+            sleep 5  # Wait for process to terminate
+          fi
           
           # Start the app fully detached from the SSH session
           sudo setsid nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 < /dev/null &
           sleep 25  # Increased sleep time for app startup
           
           # Check the root endpoint
-          if ! curl -f http://localhost:80/; then
+          if ! curl -f http://localhost:80/hello; then
             echo "App failed to start or is not reachable"
             sudo tail -n 100 app.log
             exit 1
@@ -81,11 +85,11 @@ jobs:
 
 
     # Optional: Additional health check step if needed
-    # - name: Run extended health check
-    #   uses: appleboy/ssh-action@v0.1.6
-    #   with:
-    #     host: ${{ secrets.EC2_HOST }}
-    #     username: ubuntu
-    #     key: ${{ secrets.EC2_SSH_KEY }}
-    #     script: |
-    #       curl -I http://localhost:80/health
+    - name: Run extended health check
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          curl -I http://localhost:80/health
