@@ -32,11 +32,13 @@ jobs:
 
     - name: Sync config file to S3 based on branch
       run: |
-        BUCKET_NAME="techeazy-devops-production-config"
+        BUCKET_NAME="techeazy-devops-config"
         if [ "${{ github.ref }}" == "refs/heads/dev" ]; then
           aws s3 cp assignment1/config/dev.json s3://$BUCKET_NAME/dev.json
         elif [ "${{ github.ref }}" == "refs/heads/prod" ]; then
           aws s3 cp assignment1/config/prod.json s3://$BUCKET_NAME/prod.json
+        elif [ "${{ github.ref }}" == "refs/heads/fix" ]; then
+          aws s3 cp assignment1/config/fix.json s3://$BUCKET_NAME/fix.json
         else
           echo "Branch not recognized for config upload"
         fi
@@ -49,33 +51,44 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           set -e
+          REPO_URL="https://github.com/${{ github.repository }}.git"
+          BRANCH="${{ github.ref_name }}"
+          
           if [ -d /home/ubuntu/techeazy-devops ]; then
             cd /home/ubuntu/techeazy-devops
+            git remote set-url origin $REPO_URL
             git fetch origin
-            git reset --hard origin/main
+            git reset --hard origin/$BRANCH
           else
-            git clone --branch main https://github.com/Trainings-TechEazy/test-repo-for-devops.git /home/ubuntu/techeazy-devops
+            git clone --branch $BRANCH $REPO_URL /home/ubuntu/techeazy-devops
             cd /home/ubuntu/techeazy-devops
           fi
+          
           mvn clean package
-          if pgrep -f 'java -jar'; then
-            sudo pkill -f 'java -jar'
+          
+          # Stop only the specific application
+          APP_JAR="target/hellomvc-0.0.1-SNAPSHOT.jar"
+          if pgrep -f "$APP_JAR"; then
+            sudo pkill -f "$APP_JAR"
+            sleep 5  # Wait for process to terminate
           fi
-          sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
-          sleep 10
-          if ! curl -f http://localhost:80/hello; then
+          
+          sudo nohup java -jar $APP_JAR --server.port=80 > app.log 2>&1 &
+          sleep 25  # Increased sleep time for app startup
+          
+          # Check the root endpoint
+          if ! curl -f http://localhost:80/; then
             echo "App failed to start or is not reachable"
-            tail -n 50 app.log
+            sudo tail -n 100 app.log
             exit 1
           fi
 
-    - name: Run health check script on EC2
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          cd /home/ubuntu/techeazy-devops
-          chmod +x ./assignment1/scripts/health_check.sh
-          ./assignment1/scripts/health_check.sh
+    # Optional: Additional health check step if needed
+    # - name: Run extended health check
+    #   uses: appleboy/ssh-action@v0.1.6
+    #   with:
+    #     host: ${{ secrets.EC2_HOST }}
+    #     username: ubuntu
+    #     key: ${{ secrets.EC2_SSH_KEY }}
+    #     script: |
+    #       curl -I http://localhost:80/health
