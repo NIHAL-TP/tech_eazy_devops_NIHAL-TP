@@ -66,11 +66,7 @@ jobs:
           
           mvn clean package
           
-          # Stop any running instance of the application
-          if pgrep -f "java.*hellomvc-0.0.1-SNAPSHOT.jar"; then
-            sudo pkill -f "java.*hellomvc-0.0.1-SNAPSHOT.jar"
-            sleep 5  # Wait for process to terminate
-          fi
+          
           
           # Start the app fully detached from the SSH session
           sudo setsid nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 < /dev/null &
