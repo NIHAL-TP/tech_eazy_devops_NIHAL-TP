@@ -37,7 +37,7 @@ variable "key_name" {
 variable "repo_url" {
   description = "GitHub repository URL to clone."
   type        = string
-  default     = "https://github.com/techeazy-consulting/techeazy-devops.git"
+  default     = "https://github.com/Trainings-TechEazy/test-repo-for-devops.git"
 }
 
 variable "shutdown_hours" {
