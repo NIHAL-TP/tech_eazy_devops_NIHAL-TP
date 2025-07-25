@@ -1,0 +1,72 @@
+
+name: Deploy Assignment1 DevOps
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - prod
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Sync config file to S3 based on branch
+      run: |
+        BUCKET_NAME="techeazy-devops-production-config"
+        if [ "${{ github.ref }}" == "refs/heads/dev" ]; then
+          aws s3 cp assignment1/config/dev.json s3://$BUCKET_NAME/dev.json
+        elif [ "${{ github.ref }}" == "refs/heads/prod" ]; then
+          aws s3 cp assignment1/config/prod.json s3://$BUCKET_NAME/prod.json
+        else
+          echo "Branch not recognized for config upload"
+        fi
+
+    - name: Deploy to EC2 via SSH
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          if [ -d /home/ubuntu/techeazy-devops ]; then
+            cd /home/ubuntu/techeazy-devops
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
+          else
+            git clone --branch ${{ github.ref_name }} https://github.com/Trainings-TechEazy/test-repo-for-devops.git /home/ubuntu/techeazy-devops
+            cd /home/ubuntu/techeazy-devops
+          fi
+          mvn clean package
+          sudo pkill -f 'java -jar' || true
+          sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
+
+    - name: Run health check script on EC2
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /home/ubuntu/techeazy-devops
+          chmod +x ./assignment1/scripts/health_check.sh
+          ./assignment1/scripts/health_check.sh
