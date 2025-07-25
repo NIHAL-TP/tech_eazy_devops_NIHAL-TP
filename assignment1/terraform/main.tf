@@ -143,6 +143,7 @@ resource "aws_instance" "app_server" {
     java_package   = var.java_package
     maven_package  = var.maven_package
     config_bucket  = aws_s3_bucket.config_bucket.bucket
+    ssh_private_key = file("~/.ssh/techeazy-key")
   })
 
   tags = {

@@ -4,6 +4,9 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+# Removed ssh_private_key variable declaration to avoid prompt during terraform apply
+# The private key content is read directly from file in main.tf
+
 variable "environment" {
   description = "Environment name (dev/prod)"
   type        = string
