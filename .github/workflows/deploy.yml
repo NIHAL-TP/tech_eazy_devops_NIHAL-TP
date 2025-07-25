@@ -73,7 +73,8 @@ jobs:
             sleep 5  # Wait for process to terminate
           fi
           
-          sudo nohup java -jar $APP_JAR --server.port=80 > app.log 2>&1 &
+          (sudo java -jar "$APP_JAR" --server.port=80 > app.log 2>&1 &)
+          disown
           sleep 25  # Increased sleep time for app startup
           
           # Check the root endpoint
