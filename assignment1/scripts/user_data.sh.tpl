@@ -47,7 +47,13 @@ cd "$APP_DIR"
 
 mvn clean package
 
-sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 >> app.log 2>&1 &
+sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
+sleep 10
+if ! pgrep -f 'java -jar'; then
+  echo "Java app failed to start" >> app.log
+  tail -n 50 app.log
+  exit 1
+fi
 
 # Wait for the app to start with retries
 max_retries=10
