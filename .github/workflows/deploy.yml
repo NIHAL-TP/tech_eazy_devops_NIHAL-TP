@@ -87,7 +87,7 @@ jobs:
             echo "App failed to start or is not reachable"
             sudo tail -n 100 app.log
             exit 1
-fi
+          fi
 
     # Optional: Additional health check step if needed
     - name: Run extended health check
