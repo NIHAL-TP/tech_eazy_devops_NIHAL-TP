@@ -47,7 +47,7 @@ cd "$APP_DIR"
 
 mvn clean package
 
-sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
+sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 >> app.log 2>&1 &
 
 # Wait for the app to start with retries
 max_retries=10
