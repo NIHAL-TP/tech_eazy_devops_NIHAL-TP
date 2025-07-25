@@ -51,9 +51,9 @@ jobs:
           if [ -d /home/ubuntu/techeazy-devops ]; then
             cd /home/ubuntu/techeazy-devops
             git fetch origin
-            git reset --hard origin/${{ github.ref_name }}
+            git reset --hard origin/main
           else
-            git clone --branch ${{ github.ref_name }} https://github.com/Trainings-TechEazy/test-repo-for-devops.git /home/ubuntu/techeazy-devops
+            git clone --branch main https://github.com/Trainings-TechEazy/test-repo-for-devops.git /home/ubuntu/techeazy-devops
             cd /home/ubuntu/techeazy-devops
           fi
           mvn clean package
