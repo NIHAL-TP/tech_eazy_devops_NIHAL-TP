@@ -53,6 +53,7 @@ jobs:
           set -e
           REPO_URL="https://github.com/Trainings-TechEazy/test-repo-for-devops.git"
           BRANCH="main"
+          APP_JAR_NAME="hellomvc-0.0.1-SNAPSHOT.jar"
           # Kill existing app if running
           echo "Checking for existing app processes..."
           # Use the full JAR name for pkill to be precise
