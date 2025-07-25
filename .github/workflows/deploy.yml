@@ -88,13 +88,3 @@ jobs:
             sudo tail -n 50 app.log
             exit 1
           fi
-
-    # Optional: Additional health check step if needed
-    - name: Run extended health check
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          curl -I http://localhost:80/health
