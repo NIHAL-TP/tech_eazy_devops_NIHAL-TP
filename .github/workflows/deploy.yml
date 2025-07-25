@@ -59,7 +59,7 @@ jobs:
           echo "Checking for existing app processes..."
           if pgrep -f "java.*$APP_JAR_NAME"; then
             echo "Found old app processes. Killing..."
-            sudo pkill -f "java.*$APP_JAR_NAME"
+            sudo setsid nohup pkill -f "java.*$APP_JAR_NAME"
             sleep 5 # Wait for process termination
             echo "Old app processes killed."
           else
