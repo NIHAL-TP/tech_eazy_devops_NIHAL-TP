@@ -52,7 +52,7 @@ jobs:
         script: |
           set -e
           REPO_URL="https://github.com/Trainings-TechEazy/test-repo-for-devops.git"
-          BRANCH="${{ github.ref_name }}"
+          BRANCH="main"
           
           if [ -d /home/ubuntu/techeazy-devops ]; then
             cd /home/ubuntu/techeazy-devops
