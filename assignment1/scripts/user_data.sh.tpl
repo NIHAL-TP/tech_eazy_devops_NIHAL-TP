@@ -3,6 +3,10 @@ set -e
 
 # Use SSH for Git cloning to avoid HTTPS auth issues
 REPO_SSH_URL="git@github.com:Trainings-TechEazy/test-repo-for-devops.git"
+
+# Force git commands to use SSH URL instead of HTTPS
+GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
+export GIT_SSH_COMMAND
 APP_DIR="/home/ubuntu/techeazy-devops"
 CONFIG_DIR="/home/ubuntu/config"
 CONFIG_FILE="$CONFIG_DIR/config.json"
@@ -40,6 +44,7 @@ echo "DEBUG: APP_DIR is $APP_DIR"
 if [ -d "$APP_DIR" ]; then
     echo "DEBUG: APP_DIR already exists, fetching latest changes"
     cd "$APP_DIR"
+    git remote set-url origin $REPO_SSH_URL
     git fetch origin
     git reset --hard origin/main
 else
