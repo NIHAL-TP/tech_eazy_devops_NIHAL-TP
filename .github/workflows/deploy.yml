@@ -85,7 +85,7 @@ jobs:
           # Check the root endpoint
           if ! curl -f http://localhost:80/hello; then
             echo "App failed to start or is not reachable"
-            sudo tail -n 100 app.log
+            sudo tail -n 50 app.log
             exit 1
           fi
 
