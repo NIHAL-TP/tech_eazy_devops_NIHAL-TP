@@ -48,6 +48,7 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
+          set -e
           if [ -d /home/ubuntu/techeazy-devops ]; then
             cd /home/ubuntu/techeazy-devops
             git fetch origin
@@ -57,8 +58,16 @@ jobs:
             cd /home/ubuntu/techeazy-devops
           fi
           mvn clean package
-          sudo pkill -f 'java -jar' || true
+          if pgrep -f 'java -jar'; then
+            sudo pkill -f 'java -jar'
+          fi
           sudo nohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > app.log 2>&1 &
+          sleep 10
+          if ! curl -f http://localhost:80/hello; then
+            echo "App failed to start or is not reachable"
+            tail -n 50 app.log
+            exit 1
+          fi
 
     - name: Run health check script on EC2
       uses: appleboy/ssh-action@v0.1.6
