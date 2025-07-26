@@ -84,12 +84,6 @@ resource "aws_iam_role_policy_attachment" "ec2_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# Instance Profile for EC2
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "${var.project_name}-${var.environment}-ec2-profile"
-  role = aws_iam_role.ec2_role.name
-}
-
 # EC2 Instance with proper user data
 resource "aws_s3_bucket" "config_bucket" {
   bucket = "techeazy-devops-config"
@@ -128,40 +122,173 @@ resource "null_resource" "upload_configs" {
   }
 }
 
+# Main part of Assignment 2
+#------------------------#
+
+# S3 bucket for logs
+resource "aws_s3_bucket" "logs" {
+  bucket = var.logs_bucket_name
+  force_destroy = true
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-logs"
+    Environment = var.environment
+  }
+}
+
+# S3 bucket private access
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket = aws_s3_bucket.logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# S3 lifecycle rule
+resource "aws_s3_bucket_lifecycle_configuration" "logs_lifecycle" {
+  bucket = aws_s3_bucket.logs.id
+
+  rule {
+    id     = "delete_old_logs"
+    status = "Enabled"
+
+    filter {
+      prefix = ""  # Apply to all objects
+    }
+
+    expiration {
+      days = 7
+    }
+  }
+}
+
+# IAM role for upload-only S3 access (Assignment 2)
+resource "aws_iam_role" "s3_upload" {
+  name = "${var.project_name}-${var.environment}-s3-upload"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# Policy for upload-only role
+resource "aws_iam_role_policy" "s3_upload" {
+  name = "${var.project_name}-${var.environment}-s3-upload-policy"
+  role = aws_iam_role.s3_upload.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          "${aws_s3_bucket.logs.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject"
+        ]
+        Resource = [
+          "${aws_s3_bucket.config_bucket.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = "sts:AssumeRole"
+        Resource = aws_iam_role.s3_readonly.arn
+      }
+    ]
+  })
+}
+
+# IAM role for read-only S3 access (Assignment 2)
+resource "aws_iam_role" "s3_readonly" {
+  name = "${var.project_name}-${var.environment}-s3-readonly"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_iam_role.s3_upload.arn
+        }
+      }
+    ]
+  })
+}
+
+# Policy for read-only role
+resource "aws_iam_role_policy" "s3_readonly" {
+  name = "${var.project_name}-${var.environment}-s3-readonly-policy"
+  role = aws_iam_role.s3_readonly.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.logs.arn,
+          "${aws_s3_bucket.logs.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Instance Profile for EC2 - using upload role as per assignment
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "${var.project_name}-${var.environment}-ec2-profile"
+  role = aws_iam_role.s3_upload.name
+}
+
+# Create an EC2 instance
 resource "aws_instance" "app_server" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = var.instance_type
+  ami           = "ami-0c7217cdde317cfec"  # Ubuntu 22.04 LTS
+  instance_type = "t2.micro"
   key_name      = aws_key_pair.default.key_name
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
-  subnet_id            = aws_subnet.main.id
-  vpc_security_group_ids = [aws_security_group.app_sg.id]
+
+  subnet_id                   = aws_subnet.main.id
+  vpc_security_group_ids      = [aws_security_group.app_sg.id]
+  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
+  associate_public_ip_address = true
 
   user_data = templatefile("${path.module}/../scripts/user_data.sh.tpl", {
-    stage          = var.environment
-    repo_url       = var.repo_url
+    stage = var.environment
+    repo_url = var.repo_url
     shutdown_hours = var.shutdown_hours
-    java_package   = var.java_package
-    maven_package  = var.maven_package
-    config_bucket  = aws_s3_bucket.config_bucket.bucket
-    ssh_private_key = file("~/.ssh/techeazy-key")
+    java_package = var.java_package
+    maven_package = var.maven_package
+    config_bucket = aws_s3_bucket.config_bucket.bucket
+    logs_bucket = aws_s3_bucket.logs.bucket
   })
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-server"
+    Name        = "${var.project_name}-${var.environment}-app-server"
     Environment = var.environment
+    Project     = var.project_name
   }
-
-  volume_tags = {
-    Name        = "${var.project_name}-${var.environment}-volume"
-    Environment = var.environment
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  # Removed file and remote-exec provisioners
-  # Removed connection block
 }
 
 # Data source for latest Ubuntu 22.04 LTS AMI

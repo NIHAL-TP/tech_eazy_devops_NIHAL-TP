@@ -60,3 +60,24 @@ variable "maven_package" {
   type        = string
   default     = "maven"
 }
+
+variable "logs_bucket_name" {
+  description = "Name of the S3 bucket for logs storage. Must be globally unique."
+  type        = string
+}
+
+variable "upload_logs_on_shutdown" {
+  description = "Whether to upload logs to S3 when the instance shuts down"
+  type        = bool
+  default     = true
+}
+
+variable "log_paths" {
+  description = "List of log file paths to upload to S3"
+  type        = list(string)
+  default     = [
+    "/var/log/cloud-init.log",
+    "/var/log/user-data.log",
+    "/home/ubuntu/techeazy-devops/app.log"
+  ]
+}
