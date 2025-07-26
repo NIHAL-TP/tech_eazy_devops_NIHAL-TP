@@ -104,6 +104,15 @@ resource "aws_iam_policy" "s3_read_config" {
         Resource = [
           "${aws_s3_bucket.config_bucket.arn}/*"
         ]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:ListBucket" # Permission to list objects within the bucket
+        ],
+        Resource = [
+          aws_s3_bucket.config_bucket.arn # Apply to the bucket itself, not objects within it
+        ]
       }
     ]
   })
@@ -196,22 +205,32 @@ resource "aws_iam_role_policy" "s3_upload" {
           "s3:DeleteObject"
         ]
         Resource = [
+          aws_s3_bucket.logs.arn,
           "${aws_s3_bucket.logs.arn}/*"
         ]
       },
       {
         Effect = "Allow"
         Action = [
-          "s3:GetObject"
+          "sts:AssumeRole",
+          "iam:GetRole",
+          "iam:ListRoles"
         ]
         Resource = [
-          "${aws_s3_bucket.config_bucket.arn}/*"
+          aws_iam_role.s3_readonly.arn,
+          "arn:aws:iam::*:role/${var.project_name}-${var.environment}-s3-*"
         ]
       },
       {
-        Effect = "Allow"
-        Action = "sts:AssumeRole"
-        Resource = aws_iam_role.s3_readonly.arn
+        Effect = "Allow",
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ],
+        Resource = [
+          aws_s3_bucket.config_bucket.arn,
+          "${aws_s3_bucket.config_bucket.arn}/*"
+        ]
       }
     ]
   })
@@ -288,6 +307,7 @@ resource "aws_instance" "app_server" {
     Name        = "${var.project_name}-${var.environment}-app-server"
     Environment = var.environment
     Project     = var.project_name
+    LogsBucket  = var.logs_bucket_name
   }
 }
 

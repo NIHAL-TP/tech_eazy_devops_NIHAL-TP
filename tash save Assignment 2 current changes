@@ -1,0 +1,476 @@
+[1mdiff --git a/assignment1/scripts/user_data.sh.tpl b/assignment1/scripts/user_data.sh.tpl[m
+[1mindex ae6d106..c5a404b 100644[m
+[1m--- a/assignment1/scripts/user_data.sh.tpl[m
+[1m+++ b/assignment1/scripts/user_data.sh.tpl[m
+[36m@@ -1,30 +1,188 @@[m
+ #!/bin/bash[m
+ set -e[m
+ [m
+[31m-REPO_SSH_URL="https://github.com/Trainings-TechEazy/test-repo-for-devops.git"[m
+[32m+[m[32m# Enable logging[m
+[32m+[m[32mexec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1[m
+[32m+[m
+[32m+[m[32m# Configure sudo access for ubuntu user[m
+[32m+[m[32mecho 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu[m
+[32m+[m[32mchmod 440 /etc/sudoers.d/ubuntu[m
+[32m+[m
+[32m+[m[32m# Assignment 1 variables[m
+[32m+[m[32mREPO_URL="${repo_url}"[m
+ APP_DIR="/home/ubuntu/techeazy-devops"[m
+ CONFIG_DIR="/home/ubuntu/config"[m
+ CONFIG_FILE="$CONFIG_DIR/config.json"[m
+[31m-SHUTDOWN_HOURS="${shutdown_hours}"[m
+[31m-JAVA_PACKAGE="${java_package}"[m
+[31m-MAVEN_PACKAGE="${maven_package}"[m
+ STAGE="${stage}"[m
+ CONFIG_BUCKET="${config_bucket}"[m
+[32m+[m[32mLOGS_BUCKET="${logs_bucket}"[m
+[32m+[m[32mJAVA_PACKAGE="${java_package}"[m
+[32m+[m[32mMAVEN_PACKAGE="${maven_package}"[m
+[32m+[m
+[32m+[m[32mecho "Starting instance setup for stage: $STAGE"[m
+[32m+[m[32mecho "Using config bucket: $CONFIG_BUCKET"[m
+ [m
+[32m+[m[32m# Create necessary directories[m
+ sudo mkdir -p $CONFIG_DIR[m
+[32m+[m[32msudo mkdir -p $APP_DIR[m
+[32m+[m[32msudo chown -R ubuntu:ubuntu /home/ubuntu[m
+[32m+[m
+[32m+[m[32m# Create required directories[m
+[32m+[m[32mmkdir -p /app/logs[m
+[32m+[m[32mchown -R ubuntu:ubuntu /app/logs[m
+ [m
+[31m-# Install dependencies (including awscli and ssh client) first![m
+[32m+[m[32m# Install dependencies[m
+[32m+[m[32mecho "Installing dependencies..."[m
+ sudo apt-get update[m
+[31m-sudo apt-get install -y $JAVA_PACKAGE $MAVEN_PACKAGE git jq curl awscli openssh-client[m
+[32m+[m[32msudo apt-get install -y $JAVA_PACKAGE $MAVEN_PACKAGE git jq curl awscli openssh-client at[m
+ [m
+[31m-# Now download the correct config file from S3[m
+[32m+[m[32m# Install required packages[m
+[32m+[m[32mapt-get update[m
+[32m+[m[32mapt-get install -y awscli jq at[m
+[32m+[m
+[32m+[m[32m# Download config file from S3[m
+[32m+[m[32mecho "Downloading configuration from S3..."[m
+[32m+[m[32mecho "Attempting to download $STAGE.json from $CONFIG_BUCKET"[m
+ aws s3 cp s3://$CONFIG_BUCKET/$STAGE.json $CONFIG_FILE[m
+ [m
+[32m+[m[32m# Initialize variables with defaults[m
+[32m+[m[32mSHUTDOWN_HOURS="${shutdown_hours}"  # Default from Terraform variables[m
+[32m+[m
+ if [ -f "$CONFIG_FILE" ]; then[m
+[31m-    SHUTDOWN_HOURS=$(jq -r '.shutdown_after_hours // empty' "$CONFIG_FILE")[m
+[31m-    if [ -z "$SHUTDOWN_HOURS" ]; then[m
+[31m-        SHUTDOWN_HOURS="${shutdown_hours}"[m
+[32m+[m[32m    echo "Config file found for stage: $STAGE"[m
+[32m+[m[41m    [m
+[32m+[m[32m    # Read stage-specific settings[m
+[32m+[m[32m    STAGE_SHUTDOWN_HOURS=$(jq -r '.shutdown_after_hours // empty' "$CONFIG_FILE")[m
+[32m+[m[32m    STAGE_REPO_URL=$(jq -r '.repo_url // empty' "$CONFIG_FILE")[m
+[32m+[m[32m    STAGE_JAVA_PACKAGE=$(jq -r '.java_package // empty' "$CONFIG_FILE")[m
+[32m+[m[32m    STAGE_MAVEN_PACKAGE=$(jq -r '.maven_package // empty' "$CONFIG_FILE")[m
+[32m+[m
+[32m+[m[32m    # Use stage-specific values if available, otherwise keep defaults[m
+[32m+[m[32m    if [ ! -z "$STAGE_SHUTDOWN_HOURS" ]; then[m
+[32m+[m[32m        echo "Using stage-specific shutdown hours: $STAGE_SHUTDOWN_HOURS"[m
+[32m+[m[32m        SHUTDOWN_HOURS=$STAGE_SHUTDOWN_HOURS[m
+[32m+[m[32m    fi[m
+[32m+[m
+[32m+[m[32m    if [ ! -z "$STAGE_REPO_URL" ]; then[m
+[32m+[m[32m        echo "Using stage-specific repository: $STAGE_REPO_URL"[m
+[32m+[m[32m        REPO_URL=$STAGE_REPO_URL[m
+[32m+[m[32m    fi[m
+[32m+[m
+[32m+[m[32m    if [ ! -z "$STAGE_JAVA_PACKAGE" ]; then[m
+[32m+[m[32m        echo "Using stage-specific Java package: $STAGE_JAVA_PACKAGE"[m
+[32m+[m[32m        JAVA_PACKAGE=$STAGE_JAVA_PACKAGE[m
+[32m+[m[32m    fi[m
+[32m+[m
+[32m+[m[32m    if [ ! -z "$STAGE_MAVEN_PACKAGE" ]; then[m
+[32m+[m[32m        echo "Using stage-specific Maven package: $STAGE_MAVEN_PACKAGE"[m
+[32m+[m[32m        MAVEN_PACKAGE=$STAGE_MAVEN_PACKAGE[m
+[32m+[m[32m    fi[m
+[32m+[m[32melse[m
+[32m+[m[32m    echo "Warning: Config file not found for stage: $STAGE"[m
+[32m+[m[32m    echo "Using default settings from Terraform variables"[m
+[32m+[m[32mfi[m
+[32m+[m
+[32m+[m[32m# Log final configuration[m
+[32m+[m[32mecho "Final configuration:"[m
+[32m+[m[32mecho "- Stage: $STAGE"[m
+[32m+[m[32mecho "- Shutdown Hours: $SHUTDOWN_HOURS"[m
+[32m+[m[32mecho "- Repository: $REPO_URL"[m
+[32m+[m[32mecho "- Java Package: $JAVA_PACKAGE"[m
+[32m+[m[32mecho "- Maven Package: $MAVEN_PACKAGE"[m
+[32m+[m
+[32m+[m[32m# Clone and deploy application (Assignment 1)[m
+[32m+[m[32mcd /home/ubuntu[m
+[32m+[m[32mgit clone ${repo_url} techeazy-devops[m
+[32m+[m[32mcd techeazy-devops[m
+[32m+[m
+[32m+[m[32m# Install Java and Maven[m
+[32m+[m[32mapt-get install -y ${java_package} ${maven_package}[m
+[32m+[m
+[32m+[m[32m# Build and run application with logs going to /app/logs[m
+[32m+[m[32mmvn clean package[m
+[32m+[m[32mnohup java -jar target/hellomvc-0.0.1-SNAPSHOT.jar --server.port=80 > /app/logs/app.log 2>&1 &[m
+[32m+[m
+[32m+[m[32m# Wait for application to start[m
+[32m+[m[32mfor i in {1..30}; do[m
+[32m+[m[32m    if curl -s http://localhost:80/hello; then[m
+[32m+[m[32m        echo "Application started successfully!"[m
+[32m+[m[32m        break[m
+[32m+[m[32m    fi[m
+[32m+[m[32m    if [ $i -eq 30 ]; then[m
+[32m+[m[32m        echo "Error: Application failed to start within 30 seconds"[m
+[32m+[m[32m        exit 1[m
+     fi[m
+[32m+[m[32m    sleep 1[m
+[32m+[m[32mdone[m
+[32m+[m
+[32m+[m[32m# Create log upload script[m
+[32m+[m[32mcat << 'EOF' > /usr/local/sbin/upload_logs.sh[m
+[32m+[m[32m#!/bin/bash[m
+[32m+[m[32mLOGS_BUCKET="${logs_bucket}"[m
+[32m+[m[32mSTAGE="${stage}"[m
+[32m+[m
+[32m+[m[32m# Enable logging[m
+[32m+[m[32mexec > >(tee /var/log/upload-logs.log|logger -t upload-logs -s 2>/dev/console) 2>&1[m
+[32m+[m
+[32m+[m[32mecho "Starting log upload..."[m
+[32m+[m
+[32m+[m[32m# Upload system logs[m
+[32m+[m[32mecho "Uploading system logs..."[m
+[32m+[m[32maws s3 cp /var/log/cloud-init.log s3://$LOGS_BUCKET/$STAGE/system/cloud-init.log || echo "Failed to upload cloud-init.log"[m
+[32m+[m[32maws s3 cp /var/log/user-data.log s3://$LOGS_BUCKET/$STAGE/system/user-data.log || echo "Failed to upload user-data.log"[m
+[32m+[m[32maws s3 cp /var/log/upload-logs.log s3://$LOGS_BUCKET/$STAGE/system/upload-logs.log || echo "Failed to upload upload-logs.log"[m
+[32m+[m
+[32m+[m[32m# Upload application logs[m
+[32m+[m[32mif [ -f "/app/logs/app.log" ]; then[m
+[32m+[m[32m    echo "Uploading application logs..."[m
+[32m+[m[32m    aws s3 cp /app/logs/app.log s3://$LOGS_BUCKET/$STAGE/app/logs/app.log || echo "Failed to upload app.log"[m
+ fi[m
+ [m
+[31m-sudo shutdown -h +$(( ${shutdown_hours} * 60 ))[m
+[32m+[m[32mecho "Log upload completed"[m
+[32m+[m[32mEOF[m
+[32m+[m
+[32m+[m[32m# Make script executable[m
+[32m+[m[32mchmod +x /usr/local/sbin/upload_logs.sh[m
+[32m+[m
+[32m+[m[32m# Create systemd service[m
+[32m+[m[32mcat << 'EOF' > /etc/systemd/system/upload-logs.service[m
+[32m+[m[32m[Unit][m
+[32m+[m[32mDescription=Upload logs to S3 on shutdown[m
+[32m+[m[32mDefaultDependencies=no[m
+[32m+[m[32mBefore=shutdown.target reboot.target halt.target[m
+[32m+[m[32mRequires=network-online.target[m
+[32m+[m[32mAfter=network-online.target[m
+[32m+[m
+[32m+[m[32m[Service][m
+[32m+[m[32mType=oneshot[m
+[32m+[m[32mExecStart=/usr/local/sbin/upload_logs.sh[m
+[32m+[m[32mTimeoutStartSec=0[m
+[32m+[m[32mRemainAfterExit=yes[m
+[32m+[m
+[32m+[m[32m[Install][m
+[32m+[m[32mWantedBy=halt.target reboot.target shutdown.target[m
+[32m+[m[32mEOF[m
+[32m+[m
+[32m+[m[32m# Enable and start the service[m
+[32m+[m[32msystemctl daemon-reload[m
+[32m+[m[32msystemctl enable upload-logs.service[m
+[32m+[m
+[32m+[m[32m# Create a welcome message[m
+[32m+[m[32mcat << EOF > /home/ubuntu/welcome.txt[m
+[32m+[m[32mInstance Setup Complete![m
+[32m+[m[32m------------------------[m
+[32m+[m[32mStage: $STAGE[m
+[32m+[m[32mAuto-shutdown: In $SHUTDOWN_HOURS hours[m
+[32m+[m[32mConfig location: $CONFIG_FILE[m
+[32m+[m[32mConfig bucket: $CONFIG_BUCKET[m
+[32m+[m[32mLogs bucket: $LOGS_BUCKET[m
+[32m+[m[32mApplication: Running on port 80[m
+[32m+[m[32mRepository: $REPO_URL[m
+[32m+[m[32mJava package: $JAVA_PACKAGE[m
+[32m+[m[32mMaven package: $MAVEN_PACKAGE[m
+[32m+[m
+[32m+[m[32mThe instance is ready and application is deployed.[m
+[32m+[m[32mCheck /var/log/user-data.log for setup details.[m
+[32m+[m[32mEOF[m
+[32m+[m
+[32m+[m[32mecho "Instance setup completed successfully!"[m
+[1mdiff --git a/assignment1/scripts/verify_logs.sh b/assignment1/scripts/verify_logs.sh[m
+[1mnew file mode 100644[m
+[1mindex 0000000..c3e3376[m
+[1m--- /dev/null[m
+[1m+++ b/assignment1/scripts/verify_logs.sh[m
+[36m@@ -0,0 +1,68 @@[m
+[32m+[m[32m#!/bin/bash[m
+[32m+[m
+[32m+[m[32m# Enable error handling[m
+[32m+[m[32mset -e[m
+[32m+[m
+[32m+[m[32m# Check arguments[m
+[32m+[m[32mif [ "$#" -lt 2 ]; then[m
+[32m+[m[32m    echo "Usage: $0 <stage> <logs_bucket_name>"[m
+[32m+[m[32m    echo "Example: $0 dev techeazy-logs-dev"[m
+[32m+[m[32m    exit 1[m
+[32m+[m[32mfi[m
+[32m+[m
+[32m+[m[32mSTAGE=$1[m
+[32m+[m[32mLOGS_BUCKET=$2[m
+[32m+[m
+[32m+[m[32m# Enable logging[m
+[32m+[m[32mexec > >(tee verify-logs.log|logger -t verify-logs -s 2>/dev/console) 2>&1[m
+[32m+[m
+[32m+[m[32mecho "Starting log verification..."[m
+[32m+[m
+[32m+[m[32m# Assume read-only role[m
+[32m+[m[32mROLE_ARN="arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/techeazy-${STAGE}-s3-readonly"[m
+[32m+[m[32mCREDS=$(aws sts assume-role --role-arn "$ROLE_ARN" --role-session-name "LogVerification")[m
+[32m+[m
+[32m+[m[32m# Export temporary credentials[m
+[32m+[m[32mexport AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')[m
+[32m+[m[32mexport AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')[m
+[32m+[m[32mexport AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')[m
+[32m+[m
+[32m+[m[32m# Function to check log existence[m
+[32m+[m[32mcheck_log() {[m
+[32m+[m[32m    local log_path=$1[m
+[32m+[m[32m    local log_type=$2[m
+[32m+[m[41m    [m
+[32m+[m[32m    if aws s3 ls "s3://$LOGS_BUCKET/$STAGE/$log_path" &>/dev/null; then[m
+[32m+[m[32m        echo "✅ $log_type found at s3://$LOGS_BUCKET/$STAGE/$log_path"[m
+[32m+[m[32m        return 0[m
+[32m+[m[32m    else[m
+[32m+[m[32m        echo "❌ $log_type not found at s3://$LOGS_BUCKET/$STAGE/$log_path"[m
+[32m+[m[32m        return 1[m
+[32m+[m[32m    fi[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# Initialize error counter[m
+[32m+[m[32mERRORS=0[m
+[32m+[m
+[32m+[m[32m# Check system logs[m
+[32m+[m[32mecho "Checking system logs..."[m
+[32m+[m[32mcheck_log "system/cloud-init.log" "Cloud-init log" || ((ERRORS++))[m
+[32m+[m[32mcheck_log "system/user-data.log" "User-data log" || ((ERRORS++))[m
+[32m+[m[32mcheck_log "system/upload-logs.log" "Upload script log" || ((ERRORS++))[m
+[32m+[m
+[32m+[m[32m# Check application logs[m
+[32m+[m[32mecho "Checking application logs..."[m
+[32m+[m[32mcheck_log "app/logs/app.log" "Application log" || ((ERRORS++))[m
+[32m+[m
+[32m+[m[32m# Clear temporary credentials[m
+[32m+[m[32munset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN[m
+[32m+[m
+[32m+[m[32m# Report results[m
+[32m+[m[32mecho "Verification complete."[m
+[32m+[m[32mif [ $ERRORS -eq 0 ]; then[m
+[32m+[m[32m    echo "✅ All logs verified successfully"[m
+[32m+[m[32m    exit 0[m
+[32m+[m[32melse[m
+[32m+[m[32m    echo "❌ Some logs are missing ($ERRORS errors found)"[m
+[32m+[m[32m    exit 1[m
+[32m+[m[32mfi[m[41m [m
+\ No newline at end of file[m
+[1mdiff --git a/assignment1/terraform/main.tf b/assignment1/terraform/main.tf[m
+[1mindex e181f6b..7b889ac 100644[m
+[1m--- a/assignment1/terraform/main.tf[m
+[1m+++ b/assignment1/terraform/main.tf[m
+[36m@@ -84,12 +84,6 @@[m [mresource "aws_iam_role_policy_attachment" "ec2_ssm" {[m
+   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"[m
+ }[m
+ [m
+[31m-# Instance Profile for EC2[m
+[31m-resource "aws_iam_instance_profile" "ec2_profile" {[m
+[31m-  name = "${var.project_name}-${var.environment}-ec2-profile"[m
+[31m-  role = aws_iam_role.ec2_role.name[m
+[31m-}[m
+[31m-[m
+ # EC2 Instance with proper user data[m
+ resource "aws_s3_bucket" "config_bucket" {[m
+   bucket = "techeazy-devops-config"[m
+[36m@@ -128,40 +122,173 @@[m [mresource "null_resource" "upload_configs" {[m
+   }[m
+ }[m
+ [m
+[32m+[m[32m# Main part of Assignment 2[m
+[32m+[m[32m#------------------------#[m
+[32m+[m
+[32m+[m[32m# S3 bucket for logs[m
+[32m+[m[32mresource "aws_s3_bucket" "logs" {[m
+[32m+[m[32m  bucket = var.logs_bucket_name[m
+[32m+[m[32m  force_destroy = true[m
+[32m+[m
+[32m+[m[32m  tags = {[m
+[32m+[m[32m    Name        = "${var.project_name}-${var.environment}-logs"[m
+[32m+[m[32m    Environment = var.environment[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# S3 bucket private access[m
+[32m+[m[32mresource "aws_s3_bucket_public_access_block" "logs" {[m
+[32m+[m[32m  bucket = aws_s3_bucket.logs.id[m
+[32m+[m
+[32m+[m[32m  block_public_acls       = true[m
+[32m+[m[32m  block_public_policy     = true[m
+[32m+[m[32m  ignore_public_acls      = true[m
+[32m+[m[32m  restrict_public_buckets = true[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# S3 lifecycle rule[m
+[32m+[m[32mresource "aws_s3_bucket_lifecycle_configuration" "logs_lifecycle" {[m
+[32m+[m[32m  bucket = aws_s3_bucket.logs.id[m
+[32m+[m
+[32m+[m[32m  rule {[m
+[32m+[m[32m    id     = "delete_old_logs"[m
+[32m+[m[32m    status = "Enabled"[m
+[32m+[m
+[32m+[m[32m    filter {[m
+[32m+[m[32m      prefix = ""  # Apply to all objects[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    expiration {[m
+[32m+[m[32m      days = 7[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# IAM role for upload-only S3 access (Assignment 2)[m
+[32m+[m[32mresource "aws_iam_role" "s3_upload" {[m
+[32m+[m[32m  name = "${var.project_name}-${var.environment}-s3-upload"[m
+[32m+[m[32m  assume_role_policy = jsonencode({[m
+[32m+[m[32m    Version = "2012-10-17"[m
+[32m+[m[32m    Statement = [[m
+[32m+[m[32m      {[m
+[32m+[m[32m        Action = "sts:AssumeRole"[m
+[32m+[m[32m        Effect = "Allow"[m
+[32m+[m[32m        Principal = {[m
+[32m+[m[32m          Service = "ec2.amazonaws.com"[m
+[32m+[m[32m        }[m
+[32m+[m[32m      }[m
+[32m+[m[32m    ][m
+[32m+[m[32m  })[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# Policy for upload-only role[m
+[32m+[m[32mresource "aws_iam_role_policy" "s3_upload" {[m
+[32m+[m[32m  name = "${var.project_name}-${var.environment}-s3-upload-policy"[m
+[32m+[m[32m  role = aws_iam_role.s3_upload.id[m
+[32m+[m
+[32m+[m[32m  policy = jsonencode({[m
+[32m+[m[32m    Version = "2012-10-17"[m
+[32m+[m[32m    Statement = [[m
+[32m+[m[32m      {[m
+[32m+[m[32m        Effect = "Allow"[m
+[32m+[m[32m        Action = [[m
+[32m+[m[32m          "s3:PutObject",[m
+[32m+[m[32m          "s3:DeleteObject"[m
+[32m+[m[32m        ][m
+[32m+[m[32m        Resource = [[m
+[32m+[m[32m          "${aws_s3_bucket.logs.arn}/*"[m
+[32m+[m[32m        ][m
+[32m+[m[32m      },[m
+[32m+[m[32m      {[m
+[32m+[m[32m        Effect = "Allow"[m
+[32m+[m[32m        Action = [[m
+[32m+[m[32m          "s3:GetObject"[m
+[32m+[m[32m        ][m
+[32m+[m[32m        Resource = [[m
+[32m+[m[32m          "${aws_s3_bucket.config_bucket.arn}/*"[m
+[32m+[m[32m        ][m
+[32m+[m[32m      },[m
+[32m+[m[32m      {[m
+[32m+[m[32m        Effect = "Allow"[m
+[32m+[m[32m        Action = "sts:AssumeRole"[m
+[32m+[m[32m        Resource = aws_iam_role.s3_readonly.arn[m
+[32m+[m[32m      }[m
+[32m+[m[32m    ][m
+[32m+[m[32m  })[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# IAM role for read-only S3 access (Assignment 2)[m
+[32m+[m[32mresource "aws_iam_role" "s3_readonly" {[m
+[32m+[m[32m  name = "${var.project_name}-${var.environment}-s3-readonly"[m
+[32m+[m[32m  assume_role_policy = jsonencode({[m
+[32m+[m[32m    Version = "2012-10-17"[m
+[32m+[m[32m    Statement = [[m
+[32m+[m[32m      {[m
+[32m+[m[32m        Action = "sts:AssumeRole"[m
+[32m+[m[32m        Effect = "Allow"[m
+[32m+[m[32m        Principal = {[m
+[32m+[m[32m          AWS = aws_iam_role.s3_upload.arn[m
+[32m+[m[32m        }[m
+[32m+[m[32m      }[m
+[32m+[m[32m    ][m
+[32m+[m[32m  })[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# Policy for read-only role[m
+[32m+[m[32mresource "aws_iam_role_policy" "s3_readonly" {[m
+[32m+[m[32m  name = "${var.project_name}-${var.environment}-s3-readonly-policy"[m
+[32m+[m[32m  role = aws_iam_role.s3_readonly.id[m
+[32m+[m
+[32m+[m[32m  policy = jsonencode({[m
+[32m+[m[32m    Version = "2012-10-17"[m
+[32m+[m[32m    Statement = [[m
+[32m+[m[32m      {[m
+[32m+[m[32m        Effect = "Allow"[m
+[32m+[m[32m        Action = [[m
+[32m+[m[32m          "s3:GetObject",[m
+[32m+[m[32m          "s3:ListBucket"[m
+[32m+[m[32m        ][m
+[32m+[m[32m        Resource = [[m
+[32m+[m[32m          aws_s3_bucket.logs.arn,[m
+[32m+[m[32m          "${aws_s3_bucket.logs.arn}/*"[m
+[32m+[m[32m        ][m
+[32m+[m[32m      }[m
+[32m+[m[32m    ][m
+[32m+[m[32m  })[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# Instance Profile for EC2 - using upload role as per assignment[m
+[32m+[m[32mresource "aws_iam_instance_profile" "ec2_profile" {[m
+[32m+[m[32m  name = "${var.project_name}-${var.environment}-ec2-profile"[m
+[32m+[m[32m  role = aws_iam_role.s3_upload.name[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m# Create an EC2 instance[m
+ resource "aws_instance" "app_server" {[m
+[31m-  ami           = data.aws_ami.ubuntu.id[m
+[31m-  instance_type = var.instance_type[m
+[32m+[m[32m  ami           = "ami-0c7217cdde317cfec"  # Ubuntu 22.04 LTS[m
+[32m+[m[32m  instance_type = "t2.micro"[m
+   key_name      = aws_key_pair.default.key_name[m
+[31m-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name[m
+[31m-  subnet_id            = aws_subnet.main.id[m
+[31m-  vpc_security_group_ids = [aws_security_group.app_sg.id][m
+[32m+[m
+[32m+[m[32m  subnet_id                   = aws_subnet.main.id[m
+[32m+[m[32m  vpc_security_group_ids      = [aws_security_group.app_sg.id][m
+[32m+[m[32m  iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name[m
+[32m+[m[32m  associate_public_ip_address = true[m
+ [m
+   user_data = templatefile("${path.module}/../scripts/user_data.sh.tpl", {[m
+[31m-    stage          = var.environment[m
+[31m-    repo_url       = var.repo_url[m
+[32m+[m[32m    stage = var.environment[m
+[32m+[m[32m    repo_url = var.repo_url[m
+     shutdown_hours = var.shutdown_hours[m
+[31m-    java_package   = var.java_package[m
+[31m-    maven_package  = var.maven_package[m
+[31m-    config_bucket  = aws_s3_bucket.config_bucket.bucket[m
+[31m-    ssh_private_key = file("~/.ssh/techeazy-key")[m
+[32m+[m[32m    java_package = var.java_package[m
+[32m+[m[32m    maven_package = var.maven_package[m
+[32m+[m[32m    config_bucket = aws_s3_bucket.config_bucket.bucket[m
+[32m+[m[32m    logs_bucket = aws_s3_bucket.logs.bucket[m
+   })[m
+ [m
+   tags = {[m
+[31m-    Name        = "${var.project_name}-${var.environment}-server"[m
+[31m-    Environme

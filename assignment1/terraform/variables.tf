@@ -10,7 +10,7 @@ variable "aws_region" {
 variable "environment" {
   description = "Environment name (dev/prod)"
   type        = string
-  default     = "prod"
+  default     = "dev"
 }
 
 variable "instance_type" {
@@ -62,8 +62,13 @@ variable "maven_package" {
 }
 
 variable "logs_bucket_name" {
-  description = "Name of the S3 bucket for logs storage. Must be globally unique."
+  description = "Name of S3 bucket for logs. Must be provided via command line."
   type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", var.logs_bucket_name))
+    error_message = "The bucket name must be provided and must be a valid S3 bucket name (lowercase letters, numbers, hyphens)."
+  }
 }
 
 variable "upload_logs_on_shutdown" {
