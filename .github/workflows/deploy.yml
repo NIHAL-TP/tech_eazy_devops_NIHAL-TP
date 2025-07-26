@@ -48,6 +48,8 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
+        timeout: 60s
+        command_timeout: 30m
         script: |
           set -e
           REPO_URL="https://github.com/Trainings-TechEazy/test-repo-for-devops.git"
@@ -79,9 +81,30 @@ jobs:
 
           # Start the app fully detached from the SSH session
           sudo setsid nohup java -jar target/$APP_JAR_NAME --server.port=80 > app.log 2>&1 < /dev/null &
-          sleep 26  # Increased sleep time for app startup
+          
+          # Wait for application to start (with timeout)
+          max_attempts=30
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt/$max_attempts: Checking if application is running..."
+            if curl -s -f http://localhost:80/hello > /dev/null; then
+              echo "Application is up and running!"
+              break
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+              echo "Application failed to start after $max_attempts attempts"
+              echo "Last 50 lines of application log:"
+              sudo tail -n 50 app.log
+              exit 1
+            fi
+            
+            echo "Waiting for application to start..."
+            sleep 10
+            attempt=$((attempt + 1))
+          done
 
-          # Check the root endpoint
+          # Final health check
           if ! curl -f http://localhost:80/hello; then
             echo "App failed to start or is not reachable"
             sudo tail -n 50 app.log
