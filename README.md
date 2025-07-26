@@ -1,11 +1,54 @@
 # TechEazy DevOps Assignment 1
 
-This repository contains the implementation of TechEazy's DevOps Assignment 1 - Automated EC2 Deployment with multi-stage support and automated CI/CD pipeline.
+This repository contains the implementation of TechEazy's DevOps Assign### Environment Configurations
+
+#### Terraform Variables
+Located in `assignment1/terraform/`:
+
+1. **Production Environment** (`prod.tfvars`):
+```hcl
+aws_region     = "us-east-1"
+environment    = "prod"
+instance_type  = "t2.medium"    # Higher capacity for production
+project_name   = "techeazy-devops"
+vpc_cidr       = "10.0.0.0/16"
+shutdown_hours = 2              # Shorter auto-shutdown for cost optimization
+```
+
+2. **Development Environment** (`dev.tfvars`):
+```hcl
+aws_region     = "us-east-1"
+environment    = "dev"
+instance_type  = "t2.micro"
+project_name   = "techeazy-devops"
+vpc_cidr       = "10.0.0.0/16"
+```
+
+To deploy with specific environment:
+```bash
+# For Production
+terraform apply -var-file="prod.tfvars"
+
+# For Development
+terraform apply -var-file="dev.tfvars"
+```
+
+#### Application Configurations
+Located in `assignment1/config/`:
+```json
+{
+    "instance_type": "t2.micro",
+    "region": "us-east-1",
+    "environment": "dev|prod|fix",
+    "app_port": 80,
+    "shutdown_after_hours": 4
+}
+```tomated EC2 Deployment with multi-stage support and automated CI/CD pipeline.
 
 ## Features
 
 - Automated EC2 instance deployment using Terraform
-- Multi-stage deployment support (dev, prod, fix)
+- Multi-stage deployment support (dev, prod)
 - GitHub Actions CI/CD pipeline
 - Automated application deployment with Java 21 & Maven
 - Stage-based configuration management via S3
@@ -19,15 +62,12 @@ assignment1/
 ├── config/              # Environment-specific configurations
 │   ├── dev.json        # Development environment config
 │   ├── prod.json       # Production environment config
-│   └── fix.json        # Fix environment config
 ├── scripts/            # Deployment and utility scripts
-│   ├── health_check.sh # Application health monitoring
 │   └── user_data.sh.tpl# EC2 instance initialization
 └── terraform/          # Infrastructure as Code
     ├── main.tf         # Main Terraform configuration
     ├── variables.tf    # Variable definitions
     ├── outputs.tf      # Output definitions
-    └── *.tfvars       # Environment-specific variables
 ```
 
 ## Requirements
@@ -41,7 +81,7 @@ assignment1/
 ## Deployment
 
 The deployment is automated via GitHub Actions and triggers on:
-- Push to main, dev, prod, or fix branches
+- Push to main, dev branches
 - Manual workflow dispatch
 
 ### Configuration
@@ -88,7 +128,6 @@ EC2_HOST               # Your EC2 instance public IP (after first deployment)
 Choose your target environment by pushing to:
 - **Production**: `main` branch
 - **Development**: `dev` branch
-- **Testing**: `fix` branch
 
 ### 3. Deployment Steps
 
@@ -113,7 +152,7 @@ Located in `assignment1/config/`:
 {
     "instance_type": "t2.micro",
     "region": "us-east-1",
-    "environment": "dev|prod|fix",
+    "environment": "dev|prod",
     "app_port": 80,
     "shutdown_after_hours": 4
 }
