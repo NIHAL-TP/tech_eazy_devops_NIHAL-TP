@@ -10,7 +10,7 @@ variable "aws_region" {
 variable "environment" {
   description = "Environment name (dev/prod)"
   type        = string
-  default     = "prod"
+  default     = "dev"
 }
 
 variable "instance_type" {
@@ -59,4 +59,30 @@ variable "maven_package" {
   description = "Maven package to install."
   type        = string
   default     = "maven"
+}
+
+variable "logs_bucket_name" {
+  description = "Name of S3 bucket for logs. Must be provided via command line."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", var.logs_bucket_name))
+    error_message = "The bucket name must be provided and must be a valid S3 bucket name (lowercase letters, numbers, hyphens)."
+  }
+}
+
+variable "upload_logs_on_shutdown" {
+  description = "Whether to upload logs to S3 when the instance shuts down"
+  type        = bool
+  default     = true
+}
+
+variable "log_paths" {
+  description = "List of log file paths to upload to S3"
+  type        = list(string)
+  default     = [
+    "/var/log/cloud-init.log",
+    "/var/log/user-data.log",
+    "/home/ubuntu/techeazy-devops/app.log"
+  ]
 }
