@@ -4,7 +4,7 @@
     "environment": "prod",
     "app_port": 80,
     "shutdown_after_hours": 2,
-    "repo_url": "https://github.com/techeazy-consulting/techeazy-devops.git",
+    "repo_url": "https://github.com/Trainings-TechEazy/test-repo-for-devops.git",
     "health_check_path": "/hello",
     "java_version": "21",
     "maven_version": "3.9.6"
