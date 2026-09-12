@@ -1,6 +1,6 @@
 # TechEazy DevOps Assignment 1
 
-This repository contains the implementation of TechEazy's DevOps Assign### Environment Configurations
+This repository contains the implementation of TechEazy's DevOps Assignment Environment Configurations
 
 #### Terraform Variables
 Located in `assignment1/terraform/`:
@@ -43,7 +43,7 @@ Located in `assignment1/config/`:
     "app_port": 80,
     "shutdown_after_hours": 4
 }
-```tomated EC2 Deployment with multi-stage support and automated CI/CD pipeline.
+``` Autotomated EC2 Deployment with multi-stage support and automated CI/CD pipeline.
 
 ## Features
 
