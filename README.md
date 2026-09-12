@@ -43,7 +43,8 @@ Located in `assignment1/config/`:
     "app_port": 80,
     "shutdown_after_hours": 4
 }
-``` Autotomated EC2 Deployment with multi-stage support and automated CI/CD pipeline.
+``` 
+Autotomated EC2 Deployment with multi-stage support and automated CI/CD pipeline.
 
 ## Features
 
